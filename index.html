@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘 뭐 먹지? - 프리미엄 점심 메뉴 추천</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Pretendard-like Inter & Noto Sans KR) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Tone.js for premium web audio interactions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            accent: '#6366f1'
+                        },
+                        dark: {
+                            bg: '#0f172a',
+                            card: 'rgba(30, 41, 59, 0.7)',
+                            border: 'rgba(255, 255, 255, 0.08)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Modern Glassmorphism Styling */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Subtle Glow Effects */
+        .glow-orange {
+            box-shadow: 0 0 35px -5px rgba(249, 115, 22, 0.3);
+        }
+        .glow-indigo {
+            box-shadow: 0 0 35px -5px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.5);
+        }
+
+        /* Animated Wheel Pointer Indicator */
+        .wheel-pointer {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 16px solid transparent;
+            border-right: 16px solid transparent;
+            border-top: 28px solid #f97316;
+            z-index: 30;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+        }
+
+        /* Card Flip Transitions */
+        .flip-card {
+            perspective: 1000px;
+        }
+        .flip-card-inner {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            backface-visibility: hidden;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-200/80 dark:border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            
+            <!-- Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                    <i class="fa-solid fa-utensils text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+                        오늘 뭐 먹지?
+                    </h1>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">LUNCH DECISION ENGINE</p>
+                </div>
+            </div>
+
+            <!-- Header Controls -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Add Menu Trigger -->
+                <button onclick="openAddMenuModal()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus text-brand-500"></i>
+                    <span class="hidden sm:inline">메뉴 추가</span>
+                </button>
+
+                <!-- Lunch History Drawer Trigger -->
+                <button onclick="toggleHistoryDrawer()" class="relative px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+                    <span class="hidden sm:inline">오늘의 일기</span>
+                    <span id="historyBadge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-brand-500 text-white text-[10px] rounded-full items-center justify-center font-bold">0</span>
+                </button>
+
+                <!-- Dark Mode Toggle Button -->
+                <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition flex items-center justify-center">
+                    <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow space-y-8">
+
+        <!-- Top Navigation Tabs (Mode Selector) -->
+        <div class="flex justify-center">
+            <div class="glass-panel p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 inline-flex shadow-sm gap-1">
+                <button id="modeWheelBtn" onclick="switchPickMode('wheel')" class="px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200 flex items-center gap-2 bg-brand-500 text-white shadow-md shadow-brand-500/20">
+                    <i class="fa-solid fa-chart-pie"></i> 3D 룰렛
+                </button>
+                <button id="modeTournamentBtn" onclick="switchPickMode('tournament')" class="px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200 flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i class="fa-solid fa-trophy"></i> 이상형 월드컵 (2지선다)
+                </button>
+                <button id="modeCardBtn" onclick="switchPickMode('card')" class="px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200 flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i class="fa-solid fa-cubes"></i> 카드 셔플
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter & Search Controls Panel -->
+        <section class="glass-panel rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+            
+            <!-- Category Chips Bar -->
+            <div>
+                <label class="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">
+                    <i class="fa-solid fa-layer-group text-brand-500 mr-1"></i> 카테고리
+                </label>
+                <div id="categoryContainer" class="flex flex-wrap gap-2">
+                    <!-- Injected dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- Situation / Mood Chips Bar -->
+            <div>
+                <label class="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">
+                    <i class="fa-solid fa-wand-magic-sparkles text-indigo-500 mr-1"></i> 오늘 나의 상태 / 기분
+                </label>
+                <div id="moodContainer" class="flex flex-wrap gap-2">
+                    <!-- Injected dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- Advanced Sliders (Spicy & Price) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-200/50 dark:border-slate-800/50">
+                <!-- Spicy Level Filter -->
+                <div class="bg-slate-100/60 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300">🌶️ 맵기 레벨</span>
+                        <span id="spicyLabel" class="text-xs font-semibold text-brand-500">전체</span>
+                    </div>
+                    <input type="range" id="spicyRange" min="0" max="3" value="0" step="1" onchange="updateSpicyFilter(this.value)" class="w-full accent-brand-500 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span>전체</span>
+                        <span>안매움</span>
+                        <span>보통</span>
+                        <span>매콤함</span>
+                    </div>
+                </div>
+
+                <!-- Price Range Filter -->
+                <div class="bg-slate-100/60 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300">💰 가격대 필터</span>
+                        <span id="priceLabel" class="text-xs font-semibold text-brand-500">전체</span>
+                    </div>
+                    <input type="range" id="priceRange" min="0" max="3" value="0" step="1" onchange="updatePriceFilter(this.value)" class="w-full accent-brand-500 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span>전체</span>
+                        <span>~1만원 미만</span>
+                        <span>1~1.5만원</span>
+                        <span>1.5만원 이상</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+            <!-- Left/Center Primary Workspace (8 cols) -->
+            <div class="lg:col-span-8 glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col items-center justify-center min-h-[480px] relative overflow-hidden">
+                
+                <!-- VIEW 1: ROULETTE WHEEL -->
+                <div id="viewWheel" class="w-full flex flex-col items-center">
+                    <div class="relative w-72 h-72 sm:w-80 sm:h-80 my-4">
+                        <div class="wheel-pointer"></div>
+                        <canvas id="rouletteCanvas" width="320" height="320" class="w-full h-full rounded-full transition-transform duration-[4000ms] cubic-bezier(0.15, 0.85, 0.35, 1.02) shadow-2xl border-4 border-slate-800 dark:border-slate-700"></canvas>
+                    </div>
+
+                    <button id="spinBtn" onclick="spinWheel()" class="mt-4 px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 text-white font-bold text-base shadow-lg shadow-brand-500/25 transition transform active:scale-95 flex items-center gap-3">
+                        <i class="fa-solid fa-play"></i>
+                        <span>오늘 점심 룰렛 돌리기</span>
+                    </button>
+                </div>
+
+                <!-- VIEW 2: TOURNAMENT WORLD CUP -->
+                <div id="viewTournament" class="w-full hidden flex-col items-center py-4">
+                    <div class="w-full max-w-xl text-center mb-6">
+                        <span id="tournamentRoundLabel" class="inline-block px-3 py-1 bg-indigo-500/10 text-indigo-500 font-bold text-xs rounded-full border border-indigo-500/20 mb-2">
+                            8강 토너먼트
+                        </span>
+                        <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">어느 쪽이 더 당기시나요?</h3>
+                    </div>
+
+                    <!-- Duel Matchup Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg mb-4" id="tournamentDuelBox">
+                        <!-- Dual choice cards populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- VIEW 3: CARD SHUFFLE -->
+                <div id="viewCard" class="w-full hidden flex-col items-center py-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-xl mb-6" id="cardShuffleBox">
+                        <!-- Flip cards populated dynamically -->
+                    </div>
+
+                    <button id="shuffleBtn" onclick="startCardShuffle()" class="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-brand-500/25 transition transform active:scale-95 flex items-center gap-2">
+                        <i class="fa-solid fa-shuffle"></i>
+                        <span>카드 셔플하기</span>
+                    </button>
+                </div>
+
+                <!-- Active Candidate Counter Subtext -->
+                <p class="text-xs text-slate-400 mt-6 font-medium">
+                    필터링된 후보 메뉴 <span id="candidateCount" class="font-bold text-brand-500">0</span>개 포함 중
+                </p>
+            </div>
+
+            <!-- Right Candidates List Sidebar (4 cols) -->
+            <div class="lg:col-span-4 glass-panel rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col h-full min-h-[480px]">
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200/60 dark:border-slate-800/60">
+                    <h3 class="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-brand-500"></i> 후보 메뉴 목록
+                    </h3>
+                    <button onclick="resetAllFilters()" class="text-[11px] text-slate-400 hover:text-brand-500 font-medium transition">
+                        초기화
+                    </button>
+                </div>
+
+                <!-- Scrollable Menu Candidate List -->
+                <div id="candidateList" class="flex-grow overflow-y-auto max-h-[380px] space-y-2.5 pr-1">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="resultModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div id="resultModalCard" class="glass-panel bg-white/90 dark:bg-slate-900/90 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 text-center transform transition-all scale-95 opacity-0 duration-300 relative overflow-hidden">
+            
+            <!-- Result Emoji Header -->
+            <div class="w-20 h-20 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center mx-auto mb-4 text-4xl shadow-inner border border-brand-500/20">
+                <span id="resultEmoji">🍜</span>
+            </div>
+
+            <span id="resultCategory" class="inline-block px-3 py-1 bg-brand-500/10 text-brand-500 font-bold text-xs rounded-full mb-2 border border-brand-500/20">한식</span>
+            <h3 id="resultName" class="text-2xl font-black text-slate-900 dark:text-white mb-1">김치찌개</h3>
+            <p id="resultDesc" class="text-xs text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">얼큰하고 칼칼한 국물이 당기는 날엔 딱!</p>
+
+            <!-- Attributes Pills -->
+            <div class="grid grid-cols-2 gap-3 bg-slate-100/70 dark:bg-slate-800/50 rounded-2xl p-3 mb-6 text-xs text-slate-600 dark:text-slate-300">
+                <div>
+                    <span class="text-[10px] text-slate-400 block font-semibold">🌶️ 맵기</span>
+                    <span id="resultSpicy" class="font-bold">보통</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-400 block font-semibold">💰 예상 가격대</span>
+                    <span id="resultPrice" class="font-bold">~10,000원</span>
+                </div>
+            </div>
+
+            <!-- External Map Location Search Links -->
+            <div class="mb-6 space-y-2">
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">주변 맛집 검색하기</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <a id="kakaoMapBtn" target="_blank" class="py-2 px-3 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-map-pin"></i> 카카오맵
+                    </a>
+                    <a id="naverMapBtn" target="_blank" class="py-2 px-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-location-arrow"></i> 네이버지도
+                    </a>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-2">
+                <button onclick="confirmLunchChoice()" class="w-full py-3.5 bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-brand-500/20 transition flex items-center justify-center gap-2 text-sm">
+                    <i class="fa-solid fa-check"></i> 오늘 점심으로 확정 및 일기 기록
+                </button>
+                <button onclick="closeResultModal()" class="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs rounded-xl transition">
+                    다시 뽑기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addMenuModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel bg-white/95 dark:bg-slate-900/95 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-square-plus text-brand-500"></i> 새 점심 메뉴 등록
+                </h3>
+                <button onclick="closeAddMenuModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <form id="addMenuForm" onsubmit="handleAddMenu(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">메뉴 이름</label>
+                    <input type="text" id="newMenuName" required placeholder="예: 샤브샤브, 들기름 막국수" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">카테고리</label>
+                        <select id="newMenuCategory" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="한식">한식</option>
+                            <option value="중식">중식</option>
+                            <option value="일식">일식</option>
+                            <option value="양식">양식</option>
+                            <option value="분식">분식</option>
+                            <option value="샐러드/클린">샐러드/클린</option>
+                            <option value="세계요리">세계요리</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">대표 이모지</label>
+                        <input type="text" id="newMenuEmoji" value="🍲" maxlength="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-center text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">설명</label>
+                    <input type="text" id="newMenuDesc" placeholder="간단한 메뉴 설명을 적어주세요." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">🌶️ 맵기 레벨</label>
+                        <select id="newMenuSpicy" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                            <option value="1">1 (안매움)</option>
+                            <option value="2">2 (보통)</option>
+                            <option value="3">3 (매콤함)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">💰 가격대</label>
+                        <select id="newMenuPrice" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                            <option value="1">1만 원 미만</option>
+                            <option value="2">1만~1.5만 원</option>
+                            <option value="3">1.5만 원 이상</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex gap-2">
+                    <button type="button" onclick="closeAddMenuModal()" class="w-1/2 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold">취소</button>
+                    <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold shadow-md">추가하기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="historyDrawer" class="fixed inset-y-0 right-0 max-w-sm w-full glass-panel bg-white/95 dark:bg-slate-900/95 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col border-l border-slate-200 dark:border-slate-800">
+        <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+            <h3 class="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-book-bookmark text-brand-500"></i> 점심 히스토리 / 기록
+            </h3>
+            <button onclick="toggleHistoryDrawer()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+        </div>
+
+        <div id="historyList" class="flex-grow p-4 overflow-y-auto space-y-3">
+            <!-- Dynamic history cards -->
+        </div>
+
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-center">
+            <button onclick="clearHistory()" class="text-xs text-red-500 hover:underline font-semibold">히스토리 모두 지우기</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200/80 dark:border-slate-800/80 py-6 text-center text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>© 오늘 뭐 먹지? (Lunch Decision Engine) - 프리미엄 점심 메뉴 추천 데모 서비스</p>
+        </div>
+    </footer>
+
+    <script>
+        // High Quality Default Menu Dataset
+        const DEFAULT_MENUS = [
+            { id: 1, name: "김치찌개", category: "한식", emoji: "🍲", desc: "얼큰하고 칼칼한 한국인의 영원한 소울푸드", spicy: 2, price: 1, mood: ["비 오는 날", "해장", "보양/든든"] },
+            { id: 2, name: "된장찌개", category: "한식", emoji: "🥘", desc: "구수하고 정갈한 속 편한 집밥 스타일", spicy: 1, price: 1, mood: ["가속/가볍게"] },
+            { id: 3, name: "제육볶음", category: "한식", emoji: "🥩", desc: "매콤달콤 불향 가득 밥도둑", spicy: 2, price: 1, mood: ["가성비", "보양/든든"] },
+            { id: 4, name: "비빔밥", category: "한식", emoji: "🥗", desc: "신선한 야채와 고추장의 영양 밸런스 식사", spicy: 1, price: 1, mood: ["가속/가볍게"] },
+            { id: 5, name: "짜장면", category: "중식", emoji: "🍜", desc: "달콤짭조름 수타 중화 자장면", spicy: 1, price: 1, mood: ["가성비"] },
+            { id: 6, name: "짬뽕", category: "중식", emoji: "🍜", desc: "진한 해물 육수와 칼칼한 고추기름", spicy: 3, price: 1, mood: ["비 오는 날", "해장"] },
+            { id: 7, name: "마라탕", category: "중식", emoji: "🍲", desc: "중독성 강한 얼얼한 향신료 국물 요리", spicy: 3, price: 2, mood: ["비 오는 날"] },
+            { id: 8, name: "초밥 세트", category: "일식", emoji: "🍣", desc: "신선한 회와 깔끔한 샤리의 스시 정식", spicy: 1, price: 3, mood: ["가속/가볍게"] },
+            { id: 9, name: "돈가스", category: "일식", emoji: "🥩", desc: "겉은 바삭하고 속은 촉촉한 등심 돈카츠", spicy: 1, price: 2, mood: ["보양/든든"] },
+            { id: 10, name: "라멘", category: "일식", emoji: "🍜", desc: "깊고 진한 돈코츠 아츠아츠 라멘", spicy: 1, price: 2, mood: ["비 오는 날", "해장"] },
+            { id: 11, name: "파스타", category: "양식", emoji: "🍝", desc: "고소한 알리오 올리오 또는 크림 파스타", spicy: 1, price: 2, mood: [] },
+            { id: 12, name: "수제버거", category: "양식", emoji: "🍔", desc: "육즙 가득 소고기 패티와 브리오슈 번", spicy: 1, price: 2, mood: ["보양/든든"] },
+            { id: 13, name: "떡볶이 & 튀김", category: "분식", emoji: "🍢", desc: "매콤달콤 쌀떡볶이와 바삭 모둠튀김", spicy: 2, price: 1, mood: ["가성비"] },
+            { id: 14, name: "포케 / 샐러드", category: "샐러드/클린", emoji: "🥗", desc: "신선한 연어와 채소의 클린 라이프 샐러드", spicy: 1, price: 2, mood: ["가속/가볍게"] },
+            { id: 15, name: "쌀국수", category: "세계요리", emoji: "🍜", desc: "진한 양지 육수의 안심 베트남 쌀국수", spicy: 1, price: 2, mood: ["해장", "가속/가볍게"] },
+            { id: 16, name: "팟타이", category: "세계요리", emoji: "🍛", desc: "새콤달콤 태국식 볶음 쌀국수", spicy: 1, price: 2, mood: [] }
+        ];
+
+        // State Variables
+        let menuList = [];
+        let selectedCategory = "전체";
+        let selectedMood = "전체";
+        let spicyFilter = 0;
+        let priceFilter = 0;
+        let activePickMode = "wheel"; // 'wheel', 'tournament', 'card'
+        let currentChosenMenu = null;
+        let isAnimating = false;
+        let history = [];
+
+        // Tournament Worldcup State
+        let tournamentList = [];
+        let tournamentRound = [];
+        let tournamentNextRound = [];
+        let currentMatchIndex = 0;
+
+        const CATEGORIES = ["전체", "한식", "중식", "일식", "양식", "분식", "샐러드/클린", "세계요리"];
+        const MOODS = ["전체", "비 오는 날", "해장", "가속/가볍게", "가성비", "보양/든든"];
+
+        const PALETTE = [
+            '#f97316', '#6366f1', '#10b981', '#ec4899', 
+            '#8b5cf6', '#f59e0b', '#06b6d4', '#3b82f6'
+        ];
+
+        // Audio Synth
+        let synth;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadLocalStorage();
+            renderCategoryChips();
+            renderMoodChips();
+            updateFilteredCandidates();
+            setupRouletteCanvas();
+            renderHistory();
+
+            try {
+                synth = new Tone.Synth().toDestination();
+            } catch(e){}
+        });
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('themeIcon');
+            if (document.documentElement.classList.contains('dark')) {
+                icon.className = "fa-solid fa-sun text-sm text-yellow-400";
+            } else {
+                icon.className = "fa-solid fa-moon text-sm text-slate-600";
+            }
+            setupRouletteCanvas();
+        }
+
+        function loadLocalStorage() {
+            const savedMenus = localStorage.getItem('lunch_picker_pro_menus');
+            if (savedMenus) {
+                try { menuList = JSON.parse(savedMenus); } catch(e) { menuList = [...DEFAULT_MENUS]; }
+            } else {
+                menuList = [...DEFAULT_MENUS];
+            }
+
+            const savedHistory = localStorage.getItem('lunch_picker_pro_history');
+            if (savedHistory) {
+                try { history = JSON.parse(savedHistory); } catch(e) { history = []; }
+            }
+        }
+
+        function saveMenusToStorage() {
+            localStorage.setItem('lunch_picker_pro_menus', JSON.stringify(menuList));
+        }
+
+        function saveHistoryToStorage() {
+            localStorage.setItem('lunch_picker_pro_history', JSON.stringify(history));
+            updateHistoryBadge();
+        }
+
+        // Render Filter Chips
+        function renderCategoryChips() {
+            const container = document.getElementById('categoryContainer');
+            container.innerHTML = CATEGORIES.map(cat => `
+                <button onclick="selectCategory('${cat}')" 
+                    class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                        cat === selectedCategory 
+                        ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20' 
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }">
+                    ${cat}
+                </button>
+            `).join('');
+        }
+
+        function selectCategory(cat) {
+            selectedCategory = cat;
+            renderCategoryChips();
+            updateFilteredCandidates();
+        }
+
+        function renderMoodChips() {
+            const container = document.getElementById('moodContainer');
+            container.innerHTML = MOODS.map(mood => `
+                <button onclick="selectMood('${mood}')" 
+                    class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                        mood === selectedMood 
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' 
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }">
+                    ${mood}
+                </button>
+            `).join('');
+        }
+
+        function selectMood(mood) {
+            selectedMood = mood;
+            renderMoodChips();
+            updateFilteredCandidates();
+        }
+
+        function updateSpicyFilter(val) {
+            spicyFilter = parseInt(val);
+            const labels = ["전체", "안매움", "보통", "매콤함"];
+            document.getElementById('spicyLabel').innerText = labels[spicyFilter];
+            updateFilteredCandidates();
+        }
+
+        function updatePriceFilter(val) {
+            priceFilter = parseInt(val);
+            const labels = ["전체", "~1만원 미만", "1~1.5만원", "1.5만원 이상"];
+            document.getElementById('priceLabel').innerText = labels[priceFilter];
+            updateFilteredCandidates();
+        }
+
+        function resetAllFilters() {
+            selectedCategory = "전체";
+            selectedMood = "전체";
+            spicyFilter = 0;
+            priceFilter = 0;
+            document.getElementById('spicyRange').value = 0;
+            document.getElementById('priceRange').value = 0;
+            document.getElementById('spicyLabel').innerText = "전체";
+            document.getElementById('priceLabel').innerText = "전체";
+            renderCategoryChips();
+            renderMoodChips();
+            updateFilteredCandidates();
+        }
+
+        function getFilteredCandidates() {
+            return menuList.filter(item => {
+                const matchCategory = selectedCategory === "전체" || item.category === selectedCategory;
+                const matchMood = selectedMood === "전체" || (item.mood && item.mood.includes(selectedMood));
+                const matchSpicy = spicyFilter === 0 || item.spicy === spicyFilter;
+                const matchPrice = priceFilter === 0 || item.price === priceFilter;
+                return matchCategory && matchMood && matchSpicy && matchPrice;
+            });
+        }
+
+        function updateFilteredCandidates() {
+            const candidates = getFilteredCandidates();
+            document.getElementById('candidateCount').innerText = candidates.length;
+
+            renderCandidateList(candidates);
+
+            if (activePickMode === 'wheel') {
+                drawRouletteWheel(candidates);
+            } else if (activePickMode === 'tournament') {
+                initTournament(candidates);
+            } else {
+                renderCardSlotPlaceholders();
+            }
+        }
+
+        // Candidate List Side Panel Rendering
+        function renderCandidateList(candidates) {
+            const container = document.getElementById('candidateList');
+            if (candidates.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 dark:text-slate-500">
+                        <i class="fa-solid fa-filter-circle-xmark text-3xl mb-2"></i>
+                        <p class="text-xs">조건에 맞는 메뉴가 없습니다.<br>필터를 재설정해 주세요!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = candidates.map(item => `
+                <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-200/50 transition">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">${item.emoji}</span>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">${item.name}</h4>
+                            <p class="text-[10px] text-slate-400 font-medium">${item.category} • 🌶️${item.spicy === 1 ? '안매움' : item.spicy === 2 ? '보통' : '매움'}</p>
+                        </div>
+                    </div>
+                    ${menuList.length > 2 ? `
+                        <button onclick="removeMenu(${item.id})" class="text-slate-300 dark:text-slate-600 hover:text-red-500 p-1 text-xs transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        let currentWheelAngle = 0;
+
+        function setupRouletteCanvas() {
+            const candidates = getFilteredCandidates();
+            drawRouletteWheel(candidates);
+        }
+
+        function drawRouletteWheel(items) {
+            const canvas = document.getElementById('rouletteCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const numItems = items.length;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (numItems === 0) {
+                ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#1e293b' : '#f1f5f9';
+                ctx.beginPath();
+                ctx.arc(160, 160, 150, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = 'bold 14px Noto Sans KR';
+                ctx.textAlign = 'center';
+                ctx.fillText('후보 메뉴가 없습니다', 160, 165);
+                return;
+            }
+
+            const arcSize = (Math.PI * 2) / numItems;
+
+            for (let i = 0; i < numItems; i++) {
+                const angle = i * arcSize;
+                ctx.fillStyle = PALETTE[i % PALETTE.length];
+
+                ctx.beginPath();
+                ctx.moveTo(160, 160);
+                ctx.arc(160, 160, 155, angle, angle + arcSize);
+                ctx.lineTo(160, 160);
+                ctx.fill();
+
+                ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(160, 160);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 12px Noto Sans KR";
+                
+                const label = items[i].name.length > 6 ? items[i].name.substring(0, 5) + '..' : items[i].name;
+                ctx.fillText(`${items[i].emoji} ${label}`, 140, 4);
+                ctx.restore();
+            }
+
+            // Center Knob
+            ctx.beginPath();
+            ctx.arc(160, 160, 28, 0, Math.PI * 2);
+            ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff';
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#f97316';
+            ctx.stroke();
+
+            ctx.fillStyle = '#f97316';
+            ctx.font = 'bold 11px Noto Sans KR';
+            ctx.textAlign = 'center';
+            ctx.fillText('PICK', 160, 164);
+        }
+
+        function spinWheel() {
+            if (isAnimating) return;
+            const candidates = getFilteredCandidates();
+            if (candidates.length === 0) return;
+
+            try { Tone.start(); } catch(e){}
+
+            isAnimating = true;
+            const canvas = document.getElementById('rouletteCanvas');
+            const spinBtn = document.getElementById('spinBtn');
+            spinBtn.disabled = true;
+
+            const winnerIndex = Math.floor(Math.random() * candidates.length);
+            const winner = candidates[winnerIndex];
+
+            const sliceAngle = 360 / candidates.length;
+            const winnerSliceCenter = (winnerIndex * sliceAngle) + (sliceAngle / 2);
+            const targetSliceAngle = 270 - winnerSliceCenter; 
+
+            const randomExtraSpins = (5 + Math.floor(Math.random() * 3)) * 360;
+            const finalAngle = currentWheelAngle + randomExtraSpins + (targetSliceAngle - (currentWheelAngle % 360));
+
+            currentWheelAngle = finalAngle;
+            canvas.style.transform = `rotate(${finalAngle}deg)`;
+
+            let soundBeepCount = 0;
+            const soundInterval = setInterval(() => {
+                if (soundBeepCount < 10 && synth) {
+                    synth.triggerAttackRelease("C5", "8n");
+                    soundBeepCount++;
+                } else {
+                    clearInterval(soundInterval);
+                }
+            }, 350);
+
+            setTimeout(() => {
+                isAnimating = false;
+                spinBtn.disabled = false;
+                if (synth) synth.triggerAttackRelease("G5", "4n");
+                showResult(winner);
+            }, 4000);
+        }
+
+        function initTournament(candidates) {
+            if (candidates.length < 2) {
+                document.getElementById('tournamentDuelBox').innerHTML = `
+                    <div class="col-span-2 text-center py-8 text-slate-400">
+                        <p class="text-xs">토너먼트를 진행하려면 최소 2개 이상의 메뉴가 필요합니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Shuffle candidates and limit to 8
+            tournamentList = [...candidates].sort(() => Math.random() - 0.5);
+            if (tournamentList.length > 8) tournamentList = tournamentList.slice(0, 8);
+
+            tournamentRound = [...tournamentList];
+            tournamentNextRound = [];
+            currentMatchIndex = 0;
+
+            renderTournamentMatch();
+        }
+
+        function renderTournamentMatch() {
+            const container = document.getElementById('tournamentDuelBox');
+            const label = document.getElementById('tournamentRoundLabel');
+
+            label.innerText = `${tournamentRound.length}강 토너먼트 (${currentMatchIndex + 1}/${tournamentRound.length / 2})`;
+
+            const optionA = tournamentRound[currentMatchIndex * 2];
+            const optionB = tournamentRound[currentMatchIndex * 2 + 1];
+
+            container.innerHTML = [optionA, optionB].map(item => `
+                <div onclick="selectTournamentWinner(${item.id})" class="p-6 rounded-3xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-brand-500/10 hover:border-brand-500 border border-slate-200 dark:border-slate-700 cursor-pointer transition transform hover:-translate-y-1 text-center shadow-sm flex flex-col items-center justify-center">
+                    <span class="text-5xl mb-3">${item.emoji}</span>
+                    <h4 class="font-extrabold text-base text-slate-900 dark:text-white mb-1">${item.name}</h4>
+                    <span class="text-[10px] text-slate-400 font-semibold">${item.category} • ${item.desc}</span>
+                </div>
+            `).join('');
+        }
+
+        function selectTournamentWinner(winnerId) {
+            const winner = tournamentList.find(i => i.id === winnerId);
+            tournamentNextRound.push(winner);
+
+            if (synth) synth.triggerAttackRelease("E5", "8n");
+
+            currentMatchIndex++;
+
+            if (currentMatchIndex * 2 >= tournamentRound.length) {
+                if (tournamentNextRound.length === 1) {
+                    showResult(tournamentNextRound[0]);
+                } else {
+                    tournamentRound = [...tournamentNextRound];
+                    tournamentNextRound = [];
+                    currentMatchIndex = 0;
+                    renderTournamentMatch();
+                }
+            } else {
+                renderTournamentMatch();
+            }
+        }
+
+        function switchPickMode(mode) {
+            activePickMode = mode;
+            const viewWheel = document.getElementById('viewWheel');
+            const viewTournament = document.getElementById('viewTournament');
+            const viewCard = document.getElementById('viewCard');
+
+            const btnWheel = document.getElementById('modeWheelBtn');
+            const btnTournament = document.getElementById('modeTournamentBtn');
+            const btnCard = document.getElementById('modeCardBtn');
+
+            const activeClass = "px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200 flex items-center gap-2 bg-brand-500 text-white shadow-md shadow-brand-500/20";
+            const inactiveClass = "px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200 flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+
+            viewWheel.classList.add('hidden');
+            viewTournament.classList.add('hidden');
+            viewCard.classList.add('hidden');
+
+            btnWheel.className = inactiveClass;
+            btnTournament.className = inactiveClass;
+            btnCard.className = inactiveClass;
+
+            if (mode === 'wheel') {
+                viewWheel.classList.remove('hidden');
+                btnWheel.className = activeClass;
+                setupRouletteCanvas();
+            } else if (mode === 'tournament') {
+                viewTournament.classList.remove('hidden');
+                btnTournament.className = activeClass;
+                initTournament(getFilteredCandidates());
+            } else {
+                viewCard.classList.remove('hidden');
+                btnCard.className = activeClass;
+                renderCardSlotPlaceholders();
+            }
+        }
+
+        function renderCardSlotPlaceholders() {
+            const container = document.getElementById('cardShuffleBox');
+            container.innerHTML = [1, 2, 3].map(num => `
+                <div class="flip-card h-48 w-full cursor-pointer" onclick="revealCardSlot(${num})">
+                    <div id="cardFlipper${num}" class="flip-card-inner relative w-full h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-brand-500 to-indigo-600 text-white shadow-md">
+                        <div class="flip-card-front absolute inset-0 flex flex-col items-center justify-center p-4">
+                            <i class="fa-solid fa-cube text-3xl mb-2 opacity-80"></i>
+                            <span class="font-bold text-xs">SECRET CARD #${num}</span>
+                        </div>
+                        <div id="cardBack${num}" class="flip-card-back absolute inset-0 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-2xl flex flex-col items-center justify-center p-4 border-2 border-brand-500">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function startCardShuffle() {
+            if (isAnimating) return;
+            const candidates = getFilteredCandidates();
+            if (candidates.length === 0) return;
+
+            isAnimating = true;
+            [1, 2, 3].forEach(n => document.getElementById(`cardFlipper${n}`).parentElement.classList.remove('flipped'));
+
+            setTimeout(() => {
+                const winner = candidates[Math.floor(Math.random() * candidates.length)];
+                const luckyCardNum = Math.floor(Math.random() * 3) + 1;
+
+                [1, 2, 3].forEach(num => {
+                    const backElem = document.getElementById(`cardBack${num}`);
+                    const item = (num === luckyCardNum) ? winner : candidates[Math.floor(Math.random() * candidates.length)];
+                    backElem.innerHTML = `
+                        <span class="text-3xl mb-1">${item.emoji}</span>
+                        <h4 class="font-bold text-xs text-slate-900 dark:text-white">${item.name}</h4>
+                        <span class="text-[10px] bg-brand-500/10 text-brand-500 font-bold px-2 py-0.5 rounded-full mt-1">${item.category}</span>
+                    `;
+                });
+
+                document.getElementById(`cardFlipper${luckyCardNum}`).parentElement.classList.add('flipped');
+                if (synth) synth.triggerAttackRelease("E5", "8n");
+
+                setTimeout(() => {
+                    isAnimating = false;
+                    showResult(winner);
+                }, 800);
+            }, 500);
+        }
+
+        function revealCardSlot(num) {
+            if (isAnimating) return;
+            const candidates = getFilteredCandidates();
+            if (candidates.length === 0) return;
+
+            const card = document.getElementById(`cardFlipper${num}`).parentElement;
+            if (!card.classList.contains('flipped')) {
+                const winner = candidates[Math.floor(Math.random() * candidates.length)];
+                document.getElementById(`cardBack${num}`).innerHTML = `
+                    <span class="text-3xl mb-1">${winner.emoji}</span>
+                    <h4 class="font-bold text-xs text-slate-900 dark:text-white">${winner.name}</h4>
+                    <span class="text-[10px] bg-brand-500/10 text-brand-500 font-bold px-2 py-0.5 rounded-full mt-1">${winner.category}</span>
+                `;
+                card.classList.add('flipped');
+                setTimeout(() => showResult(winner), 600);
+            }
+        }
+
+        function showResult(menuItem) {
+            currentChosenMenu = menuItem;
+
+            document.getElementById('resultEmoji').innerText = menuItem.emoji;
+            document.getElementById('resultCategory').innerText = menuItem.category;
+            document.getElementById('resultName').innerText = menuItem.name;
+            document.getElementById('resultDesc').innerText = menuItem.desc || "오늘 점심 메뉴로 탁월한 선택입니다!";
+            
+            const spicyText = menuItem.spicy === 1 ? "안매움" : menuItem.spicy === 2 ? "보통" : "매콤함";
+            const priceText = menuItem.price === 1 ? "~1만 원 미만" : menuItem.price === 2 ? "1만~1.5만 원" : "1.5만 원 이상";
+            
+            document.getElementById('resultSpicy').innerText = spicyText;
+            document.getElementById('resultPrice').innerText = priceText;
+
+            // Kakao & Naver Map Search Links dynamically generated
+            const query = encodeURIComponent(`주변 ${menuItem.name} 맛집`);
+            document.getElementById('kakaoMapBtn').href = `https://map.kakao.com/?q=${query}`;
+            document.getElementById('naverMapBtn').href = `https://map.naver.com/v5/search/${query}`;
+
+            const modal = document.getElementById('resultModal');
+            const card = document.getElementById('resultModalCard');
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            try {
+                confetti({
+                    particleCount: 70,
+                    spread: 60,
+                    origin: { y: 0.6 }
+                });
+            } catch(e){}
+        }
+
+        function closeResultModal() {
+            const modal = document.getElementById('resultModal');
+            const card = document.getElementById('resultModalCard');
+
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        function confirmLunchChoice() {
+            if (!currentChosenMenu) return;
+
+            const newHistoryItem = {
+                ...currentChosenMenu,
+                date: new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+            };
+
+            history.unshift(newHistoryItem);
+            saveHistoryToStorage();
+            renderHistory();
+            closeResultModal();
+        }
+
+        // Custom Menu Add / Remove Handlers
+        function openAddMenuModal() { document.getElementById('addMenuModal').classList.remove('hidden'); }
+        function closeAddMenuModal() {
+            document.getElementById('addMenuModal').classList.add('hidden');
+            document.getElementById('addMenuForm').reset();
+        }
+
+        function handleAddMenu(event) {
+            event.preventDefault();
+            const newMenu = {
+                id: Date.now(),
+                name: document.getElementById('newMenuName').value.trim(),
+                category: document.getElementById('newMenuCategory').value,
+                emoji: document.getElementById('newMenuEmoji').value.trim() || "🍲",
+                desc: document.getElementById('newMenuDesc').value.trim() || "새로 추가된 맞춤 점심 메뉴",
+                spicy: parseInt(document.getElementById('newMenuSpicy').value),
+                price: parseInt(document.getElementById('newMenuPrice').value),
+                mood: []
+            };
+
+            menuList.push(newMenu);
+            saveMenusToStorage();
+            updateFilteredCandidates();
+            closeAddMenuModal();
+        }
+
+        function removeMenu(id) {
+            menuList = menuList.filter(item => item.id !== id);
+            saveMenusToStorage();
+            updateFilteredCandidates();
+        }
+
+        // History Drawer Handlers
+        function toggleHistoryDrawer() {
+            const drawer = document.getElementById('historyDrawer');
+            drawer.classList.toggle('translate-x-full');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            updateHistoryBadge();
+
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 dark:text-slate-500">
+                        <i class="fa-solid fa-clock text-2xl mb-2"></i>
+                        <p class="text-xs">아직 기록된 점심 메뉴가 없습니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = history.map(item => `
+                <div class="p-3 bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">${item.emoji}</span>
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-800 dark:text-slate-200">${item.name}</h4>
+                            <span class="text-[10px] text-slate-400">${item.date} • ${item.category}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateHistoryBadge() {
+            const badge = document.getElementById('historyBadge');
+            if (history.length > 0) {
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+                badge.innerText = history.length;
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function clearHistory() {
+            history = [];
+            saveHistoryToStorage();
+            renderHistory();
+        }
+    </script>
+</body>
+</html>
